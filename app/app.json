@@ -1,7 +1,7 @@
 {
   "expo": {
     "name": "AuricaIndus",
-    "slug": "auricaindus",
+    "slug": "aurica-agrindus",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
@@ -36,11 +36,12 @@
     },
     "extra": {
       "eas": {
-        "projectId": "00000000-0000-0000-0000-000000000000"
+        "projectId": "0750695c-c397-4fb4-b0e9-3bcfe53015eb"
       }
     },
     "plugins": [
       "expo-secure-store"
-    ]
+    ],
+    "owner": "caiotravain"
   }
 }

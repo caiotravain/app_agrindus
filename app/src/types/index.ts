@@ -32,6 +32,7 @@ export interface Step {
 export interface Stage {
   id: number;
   name: string;
+  instructions: string | null;
   order: number;
   steps: Step[];
 }

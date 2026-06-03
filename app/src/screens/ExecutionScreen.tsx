@@ -215,10 +215,12 @@ const ExecutionScreen = ({ route, navigation }: any) => {
 
   // Stage Start Modal State
   const [stageModalVisible, setStageModalVisible] = useState(false);
+  const [instructionsModalVisible, setInstructionsModalVisible] = useState(false);
   const [signatureModalVisible, setSignatureModalVisible] = useState(false);
   const [tempEmployeeCode, setTempEmployeeCode] = useState('');
   const [startingStage, setStartingStage] = useState(false);
   const [selectedStageId, setSelectedStageId] = useState<number | null>(null);
+  const [selectedStageInstructions, setSelectedStageInstructions] = useState<string | null>(null);
 
   useEffect(() => {
     fetchProcedureDetails();
@@ -229,6 +231,7 @@ const ExecutionScreen = ({ route, navigation }: any) => {
     const activeIdx = getActiveStageIndex();
     if (activeIdx !== -1 && procedure) {
       const stage = procedure.stages[activeIdx];
+      setSelectedStageInstructions(stage.instructions);
       const stageExec = execution.stage_executions.find((se: any) => se.stage === stage.id || se.stage.id === stage.id);
       if (stageExec) {
         setStageComment(stageExec.comment || '');
@@ -283,6 +286,16 @@ const ExecutionScreen = ({ route, navigation }: any) => {
             newAnswers[step.id] = units.toFixed(0);
             changed = true;
           }
+        } else if (combinedText.includes('{fabricacao}')) {
+          const dateStr = new Date().toLocaleDateString('pt-BR');
+          newAnswers[step.id] = dateStr;
+          changed = true;
+        } else if (combinedText.includes('{validade}')) {
+          const valDate = new Date();
+          valDate.setDate(valDate.getDate() + 54);
+          const dateStr = valDate.toLocaleDateString('pt-BR');
+          newAnswers[step.id] = dateStr;
+          changed = true;
         }
       });
       if (changed) setAnswers(newAnswers);
@@ -513,7 +526,7 @@ const ExecutionScreen = ({ route, navigation }: any) => {
     const rawTitle = step.text || "";
     const combined = rawTitle + " " + rawSub;
     
-    const strip = (t: string) => t.replace('{qtd}', '').replace('{calc}', '').replace('{calc_envase}', '').replace('(Repete BASE)', '').trim();
+    const strip = (t: string) => t.replace('{qtd}', '').replace('{calc}', '').replace('{calc_envase}', '').replace('{fabricacao}', '').replace('{validade}', '').replace('(Repete BASE)', '').trim();
     
     if (combined.includes('{calc}') && step.depends_on && step.multiplier) {
       let dependentVal = 0;
@@ -840,13 +853,43 @@ const ExecutionScreen = ({ route, navigation }: any) => {
                       Iniciar {stage.name}
                     </Text>
                   </TouchableOpacity>
+                  
+                  {stage.instructions && (
+                    <TouchableOpacity 
+                      style={[styles.lightButton, { marginTop: 15 }, isTablet && { minHeight: 60, paddingHorizontal: 30 }]} 
+                      onPress={() => {
+                        setSelectedStageInstructions(stage.instructions);
+                        setInstructionsModalVisible(true);
+                      }}
+                    >
+                      <Text style={[styles.lightButtonText, isTablet && { fontSize: 20 }]}>
+                        📖 Instruções da Etapa
+                      </Text>
+                    </TouchableOpacity>
+                  )}
                 </View>
               ) : (
                 <View>
                   {stageExec && (
-                    <View style={styles.employeeInfoCard}>
-                      <Text style={[styles.employeeInfoLabel, isTablet && { fontSize: 18 }]}>Iniciado por:</Text>
-                      <Text style={[styles.employeeInfoValue, isTablet && { fontSize: 18 }]}>{stageExec.employee_name || 'Desconhecido'}</Text>
+                    <View>
+                      <View style={styles.employeeInfoCard}>
+                        <Text style={[styles.employeeInfoLabel, isTablet && { fontSize: 18 }]}>Iniciado por:</Text>
+                        <Text style={[styles.employeeInfoValue, isTablet && { fontSize: 18 }]}>{stageExec.employee_name || 'Desconhecido'}</Text>
+                      </View>
+                      
+                      {stage.instructions && (
+                        <TouchableOpacity 
+                          style={[styles.lightButton, { marginBottom: 25 }, isTablet && { minHeight: 60 }]} 
+                          onPress={() => {
+                            setSelectedStageInstructions(stage.instructions);
+                            setInstructionsModalVisible(true);
+                          }}
+                        >
+                          <Text style={[styles.lightButtonText, isTablet && { fontSize: 20 }]}>
+                            📖 Ver Instruções
+                          </Text>
+                        </TouchableOpacity>
+                      )}
                     </View>
                   )}
 
@@ -905,6 +948,25 @@ const ExecutionScreen = ({ route, navigation }: any) => {
                 <Text style={styles.modalConfirmText}>{startingStage ? '...' : 'INICIAR'}</Text>
               </TouchableOpacity>
             </View>
+          </View>
+        </View>
+      </Modal>
+
+      <Modal visible={instructionsModalVisible} transparent={true} animationType="slide">
+        <View style={styles.modalOverlay}>
+          <View style={[styles.modalContent, { height: '70%', maxWidth: 700 }]}>
+            <Text style={styles.modalTitle}>Instruções da Etapa</Text>
+            <ScrollView style={{ flex: 1, marginTop: 15, marginBottom: 20 }}>
+              <Text style={{ fontSize: 16, color: '#3C2F2F', lineHeight: 24 }}>
+                {selectedStageInstructions || 'Nenhuma instrução cadastrada para esta etapa.'}
+              </Text>
+            </ScrollView>
+            <TouchableOpacity 
+              style={[styles.modalConfirm, { flex: 0, paddingHorizontal: 40, alignSelf: 'center' }]} 
+              onPress={() => setInstructionsModalVisible(false)}
+            >
+              <Text style={styles.modalConfirmText}>ENTENDI</Text>
+            </TouchableOpacity>
           </View>
         </View>
       </Modal>
@@ -1234,6 +1296,27 @@ const styles = StyleSheet.create({
   greenButtonTextTablet: {
     fontSize: 22,
     letterSpacing: 1.5,
+  },
+  lightButton: {
+    backgroundColor: '#FFF',
+    borderWidth: 2,
+    borderColor: '#3C2F2F',
+    minHeight: 50,
+    paddingHorizontal: 20,
+    paddingVertical: 8,
+    borderRadius: 15,
+    justifyContent: 'center',
+    alignItems: 'center',
+    elevation: 2,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 3,
+  },
+  lightButtonText: {
+    color: '#3C2F2F',
+    fontSize: 15,
+    fontWeight: 'bold',
   },
   answeredBox: {
     backgroundColor: '#E8F5E9',
